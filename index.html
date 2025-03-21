@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Coding Courses App</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            height: 100vh;
+            background: #f5f5f5;
+        }
+        .sidebar {
+            width: 250px;
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+        .editor-container {
+            flex: 1;
+            display: flex;
+            margin-bottom: 10px;
+        }
+        .code-editor {
+            flex: 1;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border-radius: 8px;
+            padding: 10px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            position: relative;
+        }
+        .output {
+            flex: 1;
+            margin-left: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            background: white;
+        }
+        .lesson {
+            margin-bottom: 15px;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        .lesson:hover {
+            background: #34495e;
+        }
+        .active-lesson {
+            background: #3498db;
+        }
+        .console {
+            height: 150px;
+            background: black;
+            color: #00ff00;
+            border-radius: 8px;
+            padding: 10px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        .run-btn {
+            background: #2ecc71;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        .run-btn:hover {
+            background: #27ae60;
+        }
+        .gutter {
+            position: absolute;
+            left: 0;
+            top: 0;
+            color: #666;
+            padding-right: 5px;
+            user-select: none;
+        }
+        .resizer {
+            height: 10px;
+            background: #1e1e1e;
+            cursor: ns-resize;
+            width: 100%;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h2>Courses</h2>
+        <div class="lessons">
+            <!-- Lessons populated by JavaScript -->
+        </div>
+    </div>
+    <div class="main-content">
+        <button class="run-btn" onclick="runCode()">Run Code ▶</button>
+        <div class="editor-container">
+            <div class="code-editor" id="htmlEditor">
+                <div class="gutter" id="htmlGutter"></div>
+                <textarea id="htmlCode" oninput="updateGutter('html')"></textarea>
+                <div class="resizer" onmousedown="startResize('html')"></div>
+            </div>
+            <div class="code-editor" id="cssEditor">
+                <div class="gutter" id="cssGutter"></div>
+                <textarea id="cssCode" oninput="updateGutter('css')"></textarea>
+                <div class="resizer" onmousedown="startResize('css')"></div>
+            </div>
+            <div class="code-editor" id="jsEditor">
+                <div class="gutter" id="jsGutter"></div>
+                <textarea id="jsCode" oninput="updateGutter('js')"></textarea>
+                <div class="resizer" onmousedown="startResize('js')"></div>
+            </div>
+            <iframe class="output" id="output"></iframe>
+        </div>
+        <div class="console" id="console"></div>
+    </div>
+
+    <script>
+        const courses = [
+            {
+                title: "HTML Basics",
+                language: "html",
+                lessons: [
+                    {
+                        title: "Hello World",
+                        description: "Create your first HTML page",
+                        code: `<!DOCTYPE html>
+<html>
+<head><title>My Page</title></head>
+<body>
+    <h1>Hello, World!</h1>
+</body>
+</html>`
+                    },
+                    {
+                        title: "Lists",
+                        description: "Learn to create lists",
+                        code: `<ul>
+    <li>Item 1</li>
+    <li>Item 2</li>
+    <li>Item 3</li>
+</ul>`
+                    }
+                ]
+            },
+            {
+                title: "CSS Styling",
+                language: "css",
+                lessons: [
+                    {
+                        title: "Basic Styling",
+                        description: "Style HTML elements",
+                        code: `body {
+    background: #f0f0f0;
+    font-family: Arial;
+}
+h1 {
+    color: #3498db;
+}`
+                    }
+                ]
+            },
+            {
+                title: "JavaScript Intro",
+                language: "javascript",
+                lessons: [
+                    {
+                        title: "Variables",
+                        description: "Learn to declare variables",
+                        code: `let name = "John";
+console.log("Hello, " + name);`
+                    }
+                ]
+            }
+        ];
+
+        let currentLanguage = 'html';
+        let activeLesson = null;
+
+        // Set up console override
+        const consoleDiv = document.getElementById('console');
+        console.log = function(message) {
+            const logEntry = document.createElement('div');
+            logEntry.textContent = '> ' + message;
+            consoleDiv.appendChild(logEntry);
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        };
+
+        // Initialize lessons
+        function initLessons() {
+            const lessonsContainer = document.querySelector('.lessons');
+            courses.forEach(course => {
+                const courseHeader = document.createElement('h3');
+                courseHeader.textContent = course.title;
+                lessonsContainer.appendChild(courseHeader);
+
+                course.lessons.forEach((lesson, index) => {
+                    const lessonDiv = document.createElement('div');
+                    lessonDiv.className = 'lesson';
+                    lessonDiv.textContent = lesson.title;
+                    lessonDiv.onclick = () => selectLesson(course.language, index);
+                    lessonsContainer.appendChild(lessonDiv);
+                });
+            });
+        }
+
+        // Select lesson handler
+        function selectLesson(language, index) {
+            currentLanguage = language;
+            const course = courses.find(c => c.language === language);
+            activeLesson = course.lessons[index];
+
+            document.querySelectorAll('.lesson').forEach(lesson => {
+                lesson.classList.remove('active-lesson');
+            });
+            event.target.classList.add('active-lesson');
+
+            const editor = document.getElementById(`${language}Code`);
+            editor.value = activeLesson.code;
+            updateGutter(language);
+        }
+
+        // Editor resize functionality
+        function startResize(editorType) {
+            const editor = document.getElementById(`${editorType}Editor`);
+            const resizer = editor.querySelector('.resizer');
+
+            function resize(e) {
+                editor.style.height = `${e.clientY - editor.offsetTop}px`;
+                updateGutter(editorType);
+            }
+
+            function stopResize() {
+                window.removeEventListener('mousemove', resize);
+                window.removeEventListener('mouseup', stopResize);
+            }
+
+            window.addEventListener('mousemove', resize);
+            window.addEventListener('mouseup', stopResize);
+        }
+
+        // Update line numbers
+        function updateGutter(editorType) {
+            const code = document.getElementById(`${editorType}Code`).value;
+            const gutter = document.getElementById(`${editorType}Gutter`);
+            const lines = code.split('\n').length;
+            gutter.innerHTML = Array.from({length: lines}, (_, i) => i+1).join('<br>');
+        }
+
+        // Run code handler
+        function runCode() {
+            const html = document.getElementById('htmlCode').value;
+            const css = document.getElementById('cssCode').value;
+            const js = document.getElementById('jsCode').value;
+
+            const output = document.getElementById('output');
+            const combinedCode = `
+                <style>${css}</style>
+                ${html}
+                <script>${js}<\/script>
+            `;
+
+            try {
+                output.contentWindow.document.open();
+                output.contentWindow.document.write(combinedCode);
+                output.contentWindow.document.close();
+            } catch (error) {
+                console.log(`Error: ${error.message}`);
+            }
+        }
+
+        // Initialize app
+        initLessons();
+        document.getElementById('htmlCode').value = courses[0].lessons[0].code;
+        document.querySelector('.lesson').classList.add('active-lesson');
+        updateGutter('html');
+        updateGutter('css');
+        updateGutter('js');
+    </script>
+</body>
+</html>
